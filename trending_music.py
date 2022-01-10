@@ -2,11 +2,12 @@
 # Uses Youtube API to generate a database of current trending Youtube videos
 # in the music category that the user can interact with
 # Features:
-# Add current trending Youtube videos in the Music category to an sqlite database ✓
-# Print the titles of the videos to the screen
-# Sort videos in the database by position, title and view count
 # Select a video specifically or randomly for playback
 # API_KEY = AIzaSyDvHOFGLFVTKZVALxUfelMG8rraxybZArY
+# -----------------------------------------------------------------------------
+# TODO: 
+# Sort videos in the database by position, title and view count
+# Create timestamp for last database update
 
 import sqlite3
 import random
@@ -16,7 +17,6 @@ import webbrowser
 import googleapiclient.discovery
 import googleapiclient.errors
 
-# create database
 def create_database():
     with conn:
         cur.execute("""CREATE TABLE trending (
@@ -26,13 +26,11 @@ def create_database():
                     views text
                     )""")
 
-# populate database
 def populate_database(data):
     sql = "INSERT INTO trending (positions, ids, titles, views) VALUES (?, ?, ?, ?)"
     with conn:
         cur.executemany(sql, data_prep(data))
 
-# update database
 def update_database(data):
     for video in range(len(data_prep(data))):
         sql = f"UPDATE trending SET positions=?, ids=?, titles=?, views=? WHERE positions={video + 1}"
@@ -78,7 +76,6 @@ def select_video():
     except ValueError:
         print("That selection was incorrect. Please try again.")
 
-# call youtube api for data
 def request_yt():
     api_service_name = "youtube"
     api_version = "v3"
@@ -96,7 +93,6 @@ def request_yt():
     response = request.execute()
     return response
 
-# prep data for SQL
 def data_prep(data):
     video_ids, video_titles, video_views = [], [], []
     for list_items in data.values():
@@ -111,7 +107,25 @@ def data_prep(data):
     
 
 def main():
-    select_video()
+    print("|| Welcome to the YouTube Trending Program ||")
+    while True:
+        selection = input("What would you like to do?\n" +
+                    "1 - Display the video database\n" +
+                    "2 - Update the video database\n" +
+                    "3 - Select a video from the database\n" +
+                    "4 - Exit the program\n" +
+                    "> ")
+        print()
+        if selection == "1":
+            display_database()
+        elif selection == "2":
+            update_database(yt_data)
+        elif selection == "3":
+            select_video()
+        elif selection == "4":
+            exit()
+        print()
+
     
 if __name__ == "__main__":
     conn = sqlite3.connect('trending.db')
@@ -121,5 +135,6 @@ if __name__ == "__main__":
         create_database()
         populate_database(yt_data)
         print("Database populated with new data...")
-    except: #sqlite3.OperationalError: table already exists
+        main()
+    except sqlite3.OperationalError: #sqlite3.OperationalError: table already exists
         main()
