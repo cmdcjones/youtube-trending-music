@@ -4,7 +4,7 @@
 # Features:
 # Add current trending Youtube videos in the Music category to an sqlite database ✓
 # Print the titles of the videos to the screen
-# Sort videos in the database by title, rating, and view count
+# Sort videos in the database by position, title and view count
 # Select a video specifically or randomly for playback
 # API_KEY = AIzaSyDvHOFGLFVTKZVALxUfelMG8rraxybZArY
 
@@ -17,9 +17,9 @@ import googleapiclient.discovery
 import googleapiclient.errors
 
 # create database
-def create_database(connection, cursor):
-    with connection:
-        cursor.execute("""CREATE TABLE trending (
+def create_database():
+    with conn:
+        cur.execute("""CREATE TABLE trending (
                     positions integer,
                     ids text,
                     titles text,
@@ -27,17 +27,56 @@ def create_database(connection, cursor):
                     )""")
 
 # populate database
-def populate_database(connection, cursor, data):
+def populate_database(data):
     sql = "INSERT INTO trending (positions, ids, titles, views) VALUES (?, ?, ?, ?)"
-    with connection:
-        cursor.executemany(sql, data_prep(data))
+    with conn:
+        cur.executemany(sql, data_prep(data))
 
 # update database
-def update_database(connection, cursor, data):
+def update_database(data):
     for video in range(len(data_prep(data))):
         sql = f"UPDATE trending SET positions=?, ids=?, titles=?, views=? WHERE positions={video + 1}"
-        with connection:
-            cursor.execute(sql, data_prep(data)[video])
+        with conn:
+            cur.execute(sql, data_prep(data)[video])
+
+def display_database():
+    cur.execute("SELECT positions, titles, views FROM trending")
+    for data in cur.fetchall():
+        print(f"Video Position: {data[0]} || Video Title: {data[1]} || Video Views: {data[2]}")
+
+def select_video():
+    display_database()
+    try:
+        user_select = input("Select a video by number OR type 'random' to receive" +
+                        " a random video: > ")
+
+        if user_select != "random":
+            user_select = int(user_select)
+            if user_select > 10:
+                raise ValueError
+            cur.execute("SELECT ids, titles FROM trending WHERE positions=?", (user_select,))
+            fetched_sql = cur.fetchone()
+            yt_id = fetched_sql[0]
+            yt_title = fetched_sql[1]
+            print(f"You have selected: {yt_title}! Enjoy!")
+            yt_url = f"http://www.youtube.com/watch?v={yt_id}"
+            webbrowser.open(yt_url)
+
+        elif user_select == "random":
+            random_select = random.randrange(1, 11)
+            cur.execute("SELECT ids, titles FROM trending WHERE positions=?", (random_select,))
+            fetched_sql = cur.fetchone()
+            yt_id = fetched_sql[0]
+            yt_title = fetched_sql[1]
+            print(f"Random selection finds: {yt_title}! Enjoy!")
+            yt_url = f"http://www.youtube.com/watch?v={yt_id}"
+            webbrowser.open(yt_url)
+
+        else:
+            print("That selection was incorrect. Please try again.")
+
+    except ValueError:
+        print("That selection was incorrect. Please try again.")
 
 # call youtube api for data
 def request_yt():
@@ -72,16 +111,15 @@ def data_prep(data):
     
 
 def main():
-    update_database(conn, cur, yt_data)
+    select_video()
     
 if __name__ == "__main__":
     conn = sqlite3.connect('trending.db')
     cur = conn.cursor()
     yt_data = request_yt()
     try:
-        create_database(conn, cur)
-        populate_database(conn, cur, yt_data)
+        create_database()
+        populate_database(yt_data)
         print("Database populated with new data...")
-    except:
-        print("Database already established...")
-    main()
+    except: #sqlite3.OperationalError: table already exists
+        main()
