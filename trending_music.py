@@ -11,7 +11,7 @@
 
 import sqlite3
 import random
-import datetime
+# import datetime
 import webbrowser
 
 import googleapiclient.discovery
@@ -134,7 +134,6 @@ if __name__ == "__main__":
     try:
         create_database()
         populate_database(yt_data)
-        print("Database populated with new data...")
         main()
     except sqlite3.OperationalError: #sqlite3.OperationalError: table already exists
         main()
